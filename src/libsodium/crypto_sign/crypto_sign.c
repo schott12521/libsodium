@@ -43,6 +43,12 @@ crypto_sign_primitive(void)
     return crypto_sign_PRIMITIVE;
 }
 
+int 
+crypto_derive_public_from_secret(unsigned char *sk, unsigned char *pk)
+{
+    return crypto_derive_public_from_secret_impl(sk, pk);
+}
+
 int
 crypto_sign_seed_keypair(unsigned char *pk, unsigned char *sk,
                          const unsigned char *seed)

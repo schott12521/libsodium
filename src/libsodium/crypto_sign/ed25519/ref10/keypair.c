@@ -8,27 +8,48 @@
 #include "private/ed25519_ref10.h"
 #include "randombytes.h"
 #include "utils.h"
+#include "crypto_generichash_blake2b.h"
+
+int 
+crypto_derive_public_from_secret_impl(unsigned char *sk, unsigned char *pk)
+{
+    ge25519_p3 A;
+    unsigned char hash[64];
+
+    crypto_generichash_blake2b_state state;
+    crypto_generichash_blake2b_init(&state, NULL, 0, 64);
+    crypto_generichash_blake2b_update(&state, sk, 32);
+    crypto_generichash_blake2b_final(&state, hash, 64);
+
+    hash[0] &= 248;
+    hash[31] &= 127;
+    hash[31] |= 64;
+
+    ge25519_scalarmult_base(&A, hash);
+    ge25519_p3_tobytes(pk, &A);
+    return 0;
+}
 
 int
 crypto_sign_ed25519_seed_keypair(unsigned char *pk, unsigned char *sk,
                                  const unsigned char *seed)
 {
     ge25519_p3 A;
-
+    unsigned char hash[64];
 #ifdef ED25519_NONDETERMINISTIC
     memmove(sk, seed, 32);
 #else
-    crypto_hash_sha512(sk, seed, 32);
+    crypto_generichash_blake2b_state state;
+    crypto_generichash_blake2b_init(&state, NULL, 0, 64);
+    crypto_generichash_blake2b_update(&state, sk, 32);
+    crypto_generichash_blake2b_final(&state, hash, 64);
 #endif
     sk[0] &= 248;
     sk[31] &= 127;
     sk[31] |= 64;
 
-    ge25519_scalarmult_base(&A, sk);
+    ge25519_scalarmult_base(&A, hash);
     ge25519_p3_tobytes(pk, &A);
-
-    memmove(sk, seed, 32);
-    memmove(sk + 32, pk, 32);
 
     return 0;
 }

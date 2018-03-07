@@ -9,6 +9,7 @@
 #include "sign_ed25519_ref10.h"
 #include "private/ed25519_ref10.h"
 #include "utils.h"
+#include "crypto_generichash_blake2b.h"
 
 int
 _crypto_sign_ed25519_verify_detached(const unsigned char *sig,
@@ -17,7 +18,7 @@ _crypto_sign_ed25519_verify_detached(const unsigned char *sig,
                                      const unsigned char *pk,
                                      int prehashed)
 {
-    crypto_hash_sha512_state hs;
+    crypto_generichash_blake2b_state hs;
     unsigned char            h[64];
     unsigned char            rcheck[32];
     ge25519_p3               A;
@@ -40,11 +41,12 @@ _crypto_sign_ed25519_verify_detached(const unsigned char *sig,
         ge25519_frombytes_negate_vartime(&A, pk) != 0) {
         return -1;
     }
-    _crypto_sign_ed25519_ref10_hinit(&hs, prehashed);
-    crypto_hash_sha512_update(&hs, sig, 32);
-    crypto_hash_sha512_update(&hs, pk, 32);
-    crypto_hash_sha512_update(&hs, m, mlen);
-    crypto_hash_sha512_final(&hs, h);
+    crypto_generichash_blake2b_init(&hs, NULL, 0, 64);
+    crypto_generichash_blake2b_update(&hs, sig, 32);
+    crypto_generichash_blake2b_update(&hs, pk, 32);
+    crypto_generichash_blake2b_update(&hs, m, mlen);
+    crypto_generichash_blake2b_final(&hs, h, 64);
+    
     sc25519_reduce(h);
 
     ge25519_double_scalarmult_vartime(&R, h, &A, sig + 32);
