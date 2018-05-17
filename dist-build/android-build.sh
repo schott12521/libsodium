@@ -83,6 +83,10 @@ if [ "$NDK_PLATFORM" != "$NDK_PLATFORM_COMPAT" ]; then
   rm -f config-def.log config-def-compat.log
 fi
 
+
+NPROCESSORS=$(getconf NPROCESSORS_ONLN 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null)
+PROCESSORS=${NPROCESSORS:-3}
+
 make clean && \
-make -j3 install && \
+make -j${PROCESSORS} install && \
 echo "libsodium has been installed into ${PREFIX}"
